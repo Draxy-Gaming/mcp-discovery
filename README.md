@@ -1,69 +1,70 @@
 # mcp-discover
 
-Auto-generate `.well-known/mcp.json` for any MCP server — fills the top-4 capability discovery gap in the MCP 2026 roadmap.
+Discover, search, and inspect MCP servers — and generate `.well-known/mcp.json` capability documents.
 
+Fills the top-4 capability discovery gap in the [MCP 2026 roadmap](https://modelcontextprotocol.io/roadmap).
 ```bash
 npx mcp-discover search email
+npx mcp-discover tools @notionhq/notion-mcp-server
 ```
 
 ## Why
 
-The MCP ecosystem is growing rapidly, but there's no way to discover what servers exist or what they do without manually connecting to each one. This creates a chicken-and-egg problem: developers can't find servers to use, and server authors can't get users.
+The MCP ecosystem is growing fast but fragmented. There's no way to find what servers exist or understand what they do without manually connecting to each one.
 
-The MCP 2026 roadmap identifies "capability discovery" as a top-4 priority, but no tool exists to solve it today. mcp-discover changes that by providing a complete developer workflow: search the global registry, inspect server details, generate capability documents, and validate them.
+The MCP 2026 roadmap identifies capability discovery as a top-4 priority. No tool existed to solve it. mcp-discover changes that.
 
 ## Commands
 
 ### search
-Find MCP servers by keyword across npm and your local machine.
-
+Find MCP servers by keyword across the entire npm ecosystem.
 ```bash
-# Search for email servers
 npx mcp-discover search email
-
-# Search for GitHub integrations
 npx mcp-discover search github
-
-# See all servers
-npx mcp-discover search
+npx mcp-discover search   # list all
 ```
 
-### index
-Build and cache the server index (runs automatically on first search).
-
+### tools
+See every tool a server exposes — without reading any docs.
 ```bash
-npx mcp-discover index
+npx mcp-discover tools @notionhq/notion-mcp-server
 ```
-
-### inspect
-Show detailed information about a specific server.
-
-```bash
-npx mcp-discover inspect @modelcontextprotocol/server-everything
-```
+Checks for a published `.well-known/mcp.json` first. If not found, offers to temporarily install and inspect the server, then caches the result so you never wait twice.
 
 ### generate
-Connect to a live MCP server and output its `.well-known/mcp.json`.
-
+Connect to a live server and generate its `.well-known/mcp.json`.
 ```bash
-# For stdio servers
-npx mcp-discover generate --command "npx @modelcontextprotocol/server-everything"
-
-# For HTTP servers
-npx mcp-discover generate --url "http://localhost:3001/mcp"
+npx mcp-discover generate --command mcp-server-everything
+npx mcp-discover generate --url http://localhost:3001/mcp
 ```
 
 ### validate
-Check an existing `mcp.json` against the schema.
-
+Check an existing mcp.json against the schema.
 ```bash
 npx mcp-discover validate .well-known/mcp.json
 ```
 
-## Output Format
+### inspect
+Show registry details about a specific server.
+```bash
+npx mcp-discover inspect @notionhq/notion-mcp-server
+```
 
-The generated `mcp.json` follows the emerging `.well-known/mcp.json` standard. See `examples/sample.mcp.json` for a complete example.
+### index
+Build and cache the local server index manually.
+```bash
+npx mcp-discover index
+npx mcp-discover index --refresh
+```
+
+## Shortcut
+
+After global install, use `mcpd` instead of `mcp-discover`:
+```bash
+npm install -g mcp-discover
+mcpd search email
+mcpd tools @notionhq/notion-mcp-server
+```
 
 ## License
-
 MIT
