@@ -233,20 +233,11 @@ program
     // Fetch from npm registry
     const spinner = ora('Fetching package info from npm...').start();
     let homepage: string | undefined;
-    let commandName: string | undefined;
     try {
       const pkgData = await fetchJson(`https://registry.npmjs.org/${pkgName}`);
       homepage = pkgData.homepage || pkgData.repository?.url;
       if (homepage && homepage.startsWith('git+')) homepage = homepage.slice(4);
       if (homepage && homepage.endsWith('.git')) homepage = homepage.slice(0, -4);
-      // Extract command name from bin
-      if (pkgData.bin) {
-        if (typeof pkgData.bin === 'string') {
-          commandName = pkgData.bin;
-        } else if (typeof pkgData.bin === 'object' && pkgData.bin) {
-          commandName = Object.keys(pkgData.bin)[0];
-        }
-      }
     } catch (err) {
       spinner.fail(chalk.red('Failed to fetch package info'));
       process.exit(1);
@@ -304,37 +295,56 @@ program
       });
     });
     const installSpinner = ora('Installing package globally...').start();
+    let caps: any;
     try {
       execSync(`npm install -g ${pkgName}`, { stdio: 'pipe' });
-      if (!commandName) {
-        throw new Error('No executable found in package bin field');
+      installSpinner.text = 'Fetching package bin info...';
+      // Fetch bin info after install
+      const pkgData = await fetchJson(`https://registry.npmjs.org/${pkgName}`);
+      const fallbackCommand = pkgName.split('/').pop() || pkgName;
+      let commandName = fallbackCommand;
+      if (pkgData.bin) {
+        if (typeof pkgData.bin === 'string') {
+          commandName = fallbackCommand; // string bin means use package name
+        } else if (typeof pkgData.bin === 'object' && pkgData.bin) {
+          commandName = Object.keys(pkgData.bin)[0];
+        }
       }
       installSpinner.text = 'Inspecting server...';
-      const caps = await inspectServer({ command: commandName });
-      installSpinner.text = 'Uninstalling package...';
-      execSync(`npm uninstall -g ${pkgName}`, { stdio: 'pipe' });
-      installSpinner.succeed(chalk.green('Inspection complete'));
-      // Save cache
-      mkdirSync(cacheDir, { recursive: true });
-      const cacheData = {
-        cachedAt: new Date().toISOString(),
-        tools: caps.tools,
-        resources: caps.resources,
-        prompts: caps.prompts
-      };
-      writeFileSync(cachePath, JSON.stringify(cacheData, null, 2));
-      // Print
-      if (opts.json) {
-        console.log(JSON.stringify(cacheData, null, 2));
-      } else {
-        console.log(chalk.bold('Tools:'));
-        caps.tools.forEach((tool: any) => {
-          console.log(`- ${chalk.bold(tool.name)}: ${tool.description || 'No description'}`);
-        });
+      try {
+        caps = await inspectServer({ command: commandName });
+      } catch (inspectErr) {
+        installSpinner.warn(chalk.yellow(`Could not connect to server — it may require configuration (API keys, env vars) to run`));
+        console.log(chalk.gray(`Command attempted: ${commandName}`));
+        // Still save empty cache to avoid retrying
+        caps = { tools: [], resources: [], prompts: [] };
       }
-    } catch (err) {
-      installSpinner.fail(chalk.red((err as Error).message));
-      process.exit(1);
+    } finally {
+      installSpinner.text = 'Uninstalling package...';
+      try {
+        execSync(`npm uninstall -g ${pkgName}`, { stdio: 'pipe' });
+      } catch (uninstallErr) {
+        // Ignore uninstall errors
+      }
+    }
+    installSpinner.succeed(chalk.green('Inspection complete'));
+    // Save cache
+    mkdirSync(cacheDir, { recursive: true });
+    const cacheData = {
+      cachedAt: new Date().toISOString(),
+      tools: caps.tools,
+      resources: caps.resources,
+      prompts: caps.prompts
+    };
+    writeFileSync(cachePath, JSON.stringify(cacheData, null, 2));
+    // Print
+    if (opts.json) {
+      console.log(JSON.stringify(cacheData, null, 2));
+    } else {
+      console.log(chalk.bold('Tools:'));
+      caps.tools.forEach((tool: any) => {
+        console.log(`- ${chalk.bold(tool.name)}: ${tool.description || 'No description'}`);
+      });
     }
   });
 
