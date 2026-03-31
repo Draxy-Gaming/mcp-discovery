@@ -6,6 +6,9 @@ import { createInterface } from 'readline';
 import os from 'os';
 import path from 'path';
 import https from 'https';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
         https.get(url, (res) => {
@@ -32,7 +35,7 @@ import { searchIndex } from './search.js';
 program
     .name('mcp-discover')
     .description('Generate .well-known/mcp.json for any MCP server')
-    .version('0.1.0');
+    .version(pkg.version);
 // ── generate ─────────────────────────────────────────
 program
     .command('generate')

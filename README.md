@@ -2,6 +2,7 @@
 
 Discover, search, and inspect MCP servers — and generate `.well-known/mcp.json` capability documents.
 
+Fills the top-4 capability discovery gap in the [MCP 2026 roadmap](https://modelcontextprotocol.io/roadmap).
 ```bash
 npx mcp-discover search email
 npx mcp-discover tools @notionhq/notion-mcp-server
