@@ -233,11 +233,20 @@ program
     // Fetch from npm registry
     const spinner = ora('Fetching package info from npm...').start();
     let homepage: string | undefined;
+    let commandName: string | undefined;
     try {
       const pkgData = await fetchJson(`https://registry.npmjs.org/${pkgName}`);
       homepage = pkgData.homepage || pkgData.repository?.url;
       if (homepage && homepage.startsWith('git+')) homepage = homepage.slice(4);
       if (homepage && homepage.endsWith('.git')) homepage = homepage.slice(0, -4);
+      // Extract command name from bin
+      if (pkgData.bin) {
+        if (typeof pkgData.bin === 'string') {
+          commandName = pkgData.bin;
+        } else if (typeof pkgData.bin === 'object' && pkgData.bin) {
+          commandName = Object.keys(pkgData.bin)[0];
+        }
+      }
     } catch (err) {
       spinner.fail(chalk.red('Failed to fetch package info'));
       process.exit(1);
@@ -297,8 +306,11 @@ program
     const installSpinner = ora('Installing package globally...').start();
     try {
       execSync(`npm install -g ${pkgName}`, { stdio: 'pipe' });
+      if (!commandName) {
+        throw new Error('No executable found in package bin field');
+      }
       installSpinner.text = 'Inspecting server...';
-      const caps = await inspectServer({ command: pkgName });
+      const caps = await inspectServer({ command: commandName });
       installSpinner.text = 'Uninstalling package...';
       execSync(`npm uninstall -g ${pkgName}`, { stdio: 'pipe' });
       installSpinner.succeed(chalk.green('Inspection complete'));
