@@ -1,5 +1,0 @@
-on every push:
-- npm install
-- npm run build  
-- run mcp-discover search email
-- run mcp-discover validate examples/sample.mcp.json
