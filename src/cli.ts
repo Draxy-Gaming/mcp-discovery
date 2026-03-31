@@ -24,7 +24,7 @@ function fetchJson(url: string): Promise<any> {
 }
 import ora from 'ora';
 import chalk from 'chalk';
-import { inspectServer } from './inspector.js';
+import { inspectServer, ServerCapabilities } from './inspector.js';
 import { generateDiscovery } from './generator.js';
 import { validateFile } from './validator.js';
 import { buildIndex, getCachePath } from './registry/index.js';
@@ -254,16 +254,11 @@ program
       const mcpData = await fetchJson(`${homepage}/.well-known/mcp.json`);
       if (mcpData.tools && Array.isArray(mcpData.tools)) {
         spinner.succeed(chalk.green('Found mcp.json'));
-        const tools = mcpData.tools;
-        const resources = mcpData.resources || [];
-        const prompts = mcpData.prompts || [];
         // Save cache
         mkdirSync(cacheDir, { recursive: true });
         const cacheData = {
           cachedAt: new Date().toISOString(),
-          tools,
-          resources,
-          prompts
+          ...mcpData
         };
         writeFileSync(cachePath, JSON.stringify(cacheData, null, 2));
         // Print
@@ -271,7 +266,7 @@ program
           console.log(JSON.stringify(cacheData, null, 2));
         } else {
           console.log(chalk.bold('Tools:'));
-          tools.forEach((tool: any) => {
+          mcpData.tools.forEach((tool: any) => {
             console.log(`- ${chalk.bold(tool.name)}: ${tool.description || 'No description'}`);
           });
         }
@@ -295,7 +290,7 @@ program
       });
     });
     const installSpinner = ora('Installing package globally...').start();
-    let caps: any;
+    let discovery: any;
     try {
       execSync(`npm install -g ${pkgName}`, { stdio: 'pipe' });
       installSpinner.text = 'Fetching package bin info...';
@@ -311,14 +306,17 @@ program
         }
       }
       installSpinner.text = 'Inspecting server...';
+      let caps: ServerCapabilities;
       try {
         caps = await inspectServer({ command: commandName });
       } catch (inspectErr) {
         installSpinner.warn(chalk.yellow(`Could not connect to server — it may require configuration (API keys, env vars) to run`));
         console.log(chalk.gray(`Command attempted: ${commandName}`));
         // Still save empty cache to avoid retrying
-        caps = { tools: [], resources: [], prompts: [] };
+        caps = { name: 'Unknown', version: '0.0.0', tools: [], resources: [], prompts: [] };
       }
+      installSpinner.text = 'Generating discovery...';
+      discovery = generateDiscovery(caps, { homepage });
     } finally {
       installSpinner.text = 'Uninstalling package...';
       try {
@@ -332,9 +330,7 @@ program
     mkdirSync(cacheDir, { recursive: true });
     const cacheData = {
       cachedAt: new Date().toISOString(),
-      tools: caps.tools,
-      resources: caps.resources,
-      prompts: caps.prompts
+      ...discovery
     };
     writeFileSync(cachePath, JSON.stringify(cacheData, null, 2));
     // Print
@@ -342,7 +338,7 @@ program
       console.log(JSON.stringify(cacheData, null, 2));
     } else {
       console.log(chalk.bold('Tools:'));
-      caps.tools.forEach((tool: any) => {
+      discovery.tools.forEach((tool: any) => {
         console.log(`- ${chalk.bold(tool.name)}: ${tool.description || 'No description'}`);
       });
     }
