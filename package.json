@@ -1,6 +1,6 @@
 {
   "name": "mcp-discover",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Auto-generate .well-known/mcp.json for any MCP server and search for MCP servers in the network.",
   "type": "module",
   "main": "./dist/index.js",
