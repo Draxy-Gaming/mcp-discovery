@@ -1,11 +1,12 @@
 {
   "name": "mcp-discover",
-  "version": "0.1.0",
-  "description": "Auto-generate .well-known/mcp.json for any MCP server",
+  "version": "0.1.2",
+  "description": "Auto-generate .well-known/mcp.json for any MCP server and search for MCP servers in the network.",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "mcp-discover": "./dist/cli.js"
+    "mcp-discover": "./dist/cli.js",
+    "mcpd": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -15,7 +16,8 @@
     "mcp",
     "model-context-protocol",
     "discovery",
-    "well-known"
+    "well-known",
+    "mcp-search"
   ],
   "license": "MIT",
   "devDependencies": {
